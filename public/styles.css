@@ -843,6 +843,53 @@ tbody tr:hover {
 }
 
 /* ========================================
+   DRAG AND DROP
+   ======================================== */
+
+#appPanel.drag-active {
+  position: relative;
+}
+
+#appPanel.drag-active::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--accent-subtle);
+  border: 2px dashed var(--accent-primary);
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+  z-index: 1000;
+  animation: dragPulse 1.5s ease-in-out infinite;
+}
+
+#appPanel.drag-active::after {
+  content: "Drop files here to upload";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  background: var(--bg-surface);
+  padding: 24px 48px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+  z-index: 1001;
+  white-space: nowrap;
+}
+
+@keyframes dragPulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+/* ========================================
    UTILITY CLASSES
    ======================================== */
 

@@ -541,6 +541,72 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
+// Drag and Drop functionality
+let dragCounter = 0;
+
+function setupDragAndDrop() {
+  const dropZone = appPanel;
+  
+  dropZone.addEventListener("dragenter", (event) => {
+    event.preventDefault();
+    dragCounter++;
+    if (dragCounter === 1) {
+      dropZone.classList.add("drag-active");
+    }
+  });
+  
+  dropZone.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  });
+  
+  dropZone.addEventListener("dragleave", (event) => {
+    event.preventDefault();
+    dragCounter--;
+    if (dragCounter === 0) {
+      dropZone.classList.remove("drag-active");
+    }
+  });
+  
+  dropZone.addEventListener("drop", async (event) => {
+    event.preventDefault();
+    dragCounter = 0;
+    dropZone.classList.remove("drag-active");
+    
+    if (state.role !== "read-write") {
+      setMessage("Upload requires read-write role.", true);
+      return;
+    }
+    
+    const items = event.dataTransfer.items;
+    const files = [];
+    
+    // Collect all files from drag and drop
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].kind === "file") {
+          const file = items[i].getAsFile();
+          if (file) files.push(file);
+        }
+      }
+    } else {
+      // Fallback for browsers without items API
+      for (let i = 0; i < event.dataTransfer.files.length; i++) {
+        files.push(event.dataTransfer.files[i]);
+      }
+    }
+    
+    if (files.length === 0) {
+      setMessage("No files detected in drop.", true);
+      return;
+    }
+    
+    setMessage(`Uploading ${files.length} file${files.length > 1 ? "s" : ""}...`, false);
+    for (const file of files) await uploadFile(file);
+    await refresh();
+  });
+}
+
 (async function bootstrap() {
   try {
     const session = await api("/auth/session");
@@ -548,6 +614,7 @@ window.addEventListener("keydown", (event) => {
     state.role = session.role;
     sessionInfo.textContent = `Role: ${session.role}`;
     showApp();
+    setupDragAndDrop();
     await refresh();
   } catch {
     showLogin();
