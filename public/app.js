@@ -115,7 +115,7 @@ function fileKindLabel(kind) {
 function renderBreadcrumbs() {
   breadcrumbs.innerHTML = "";
   const rootBtn = document.createElement("button");
-  rootBtn.textContent = "root";
+  rootBtn.textContent = "viaSetu";
   rootBtn.addEventListener("click", () => {
     state.currentPath = "";
     state.page = 1;
@@ -445,7 +445,7 @@ function startLiveSync() {
     if (document.hidden) return;
     if (activeUploads > 0) return;
     void refresh({ silent: true });
-  }, 5000);
+  }, 15000);
 }
 
 function stopLiveSync() {
