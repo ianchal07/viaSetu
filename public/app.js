@@ -25,9 +25,26 @@ const logoutBtn = document.getElementById("logoutBtn");
 const fileInput = document.getElementById("fileInput");
 const uploadList = document.getElementById("uploadList");
 const toggleRecursiveBtn = document.getElementById("toggleRecursive");
+const privacySettingsBtn = document.getElementById("privacySettingsBtn");
+const privacyModal = document.getElementById("privacyModal");
+const closeModalBtn = document.getElementById("closeModalBtn");
+const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+const clearNowBtn = document.getElementById("clearNowBtn");
 let liveSyncTimer = null;
 let refreshInFlight = false;
 let activeUploads = 0;
+
+// Session cleanup configuration
+const CLEANUP_CONFIG = {
+  clearOnLogout: true,
+  clearOnTabClose: true,
+  clearOnBrowserClose: true,
+  clearHistory: true,
+  clearCache: true,
+  clearLocalStorage: true,
+  clearSessionStorage: true,
+  clearCookies: true
+};
 
 function setMessage(text, isError = true) {
   message.textContent = text || "";
@@ -468,6 +485,204 @@ function showApp() {
   startLiveSync();
 }
 
+// ========================================
+// SECURITY & PRIVACY: Session Cleanup
+// ========================================
+
+// Load settings from localStorage or use defaults
+function loadCleanupSettings() {
+  try {
+    const saved = localStorage.getItem('viasetu_cleanup_config');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      Object.assign(CLEANUP_CONFIG, parsed);
+    }
+  } catch (error) {
+    console.error('[VíaSetu] Error loading cleanup settings:', error);
+  }
+}
+
+// Save settings to localStorage
+function saveCleanupSettings() {
+  try {
+    localStorage.setItem('viasetu_cleanup_config', JSON.stringify(CLEANUP_CONFIG));
+  } catch (error) {
+    console.error('[VíaSetu] Error saving cleanup settings:', error);
+  }
+}
+
+// Update UI checkboxes from config
+function updateSettingsUI() {
+  document.getElementById('clearOnLogout').checked = CLEANUP_CONFIG.clearOnLogout;
+  document.getElementById('clearOnTabClose').checked = CLEANUP_CONFIG.clearOnTabClose;
+  document.getElementById('clearLocalStorage').checked = CLEANUP_CONFIG.clearLocalStorage;
+  document.getElementById('clearSessionStorage').checked = CLEANUP_CONFIG.clearSessionStorage;
+  document.getElementById('clearCookies').checked = CLEANUP_CONFIG.clearCookies;
+  document.getElementById('clearCache').checked = CLEANUP_CONFIG.clearCache;
+  document.getElementById('clearHistory').checked = CLEANUP_CONFIG.clearHistory;
+}
+
+// Update config from UI checkboxes
+function updateSettingsFromUI() {
+  CLEANUP_CONFIG.clearOnLogout = document.getElementById('clearOnLogout').checked;
+  CLEANUP_CONFIG.clearOnTabClose = document.getElementById('clearOnTabClose').checked;
+  CLEANUP_CONFIG.clearLocalStorage = document.getElementById('clearLocalStorage').checked;
+  CLEANUP_CONFIG.clearSessionStorage = document.getElementById('clearSessionStorage').checked;
+  CLEANUP_CONFIG.clearCookies = document.getElementById('clearCookies').checked;
+  CLEANUP_CONFIG.clearCache = document.getElementById('clearCache').checked;
+  CLEANUP_CONFIG.clearHistory = document.getElementById('clearHistory').checked;
+}
+
+async function clearBrowserData() {
+  try {
+    // Clear localStorage
+    if (CLEANUP_CONFIG.clearLocalStorage) {
+      localStorage.clear();
+    }
+
+    // Clear sessionStorage
+    if (CLEANUP_CONFIG.clearSessionStorage) {
+      sessionStorage.clear();
+    }
+
+    // Clear all cookies for this domain
+    if (CLEANUP_CONFIG.clearCookies) {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i];
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        // Clear for current path
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+        // Clear for root path
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;";
+        // Clear for domain
+        const domain = window.location.hostname;
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + domain;
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=." + domain;
+      }
+    }
+
+    // Clear cache using Cache API if available
+    if (CLEANUP_CONFIG.clearCache && 'caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+    }
+
+    // Clear IndexedDB databases
+    if ('indexedDB' in window) {
+      const databases = await indexedDB.databases?.() || [];
+      databases.forEach(db => {
+        if (db.name) indexedDB.deleteDatabase(db.name);
+      });
+    }
+
+    console.log('[VíaSetu] Browser data cleared successfully');
+  } catch (error) {
+    console.error('[VíaSetu] Error clearing browser data:', error);
+  }
+}
+
+async function performSecureLogout() {
+  try {
+    // Call logout API
+    await api("/auth/logout", { method: "POST" });
+  } catch (error) {
+    console.error('[VíaSetu] Logout API error:', error);
+  }
+
+  // Clear all browser data
+  if (CLEANUP_CONFIG.clearOnLogout) {
+    await clearBrowserData();
+  }
+
+  // Reset application state
+  state.csrfToken = "";
+  state.role = "";
+  state.currentPath = "";
+  state.page = 1;
+  state.totalPages = 1;
+  state.recursive = false;
+
+  // Clear any pending operations
+  stopLiveSync();
+  activeUploads = 0;
+
+  // Show login screen
+  showLogin();
+
+  // Optional: Clear browser history (Note: This may not work in all browsers due to security restrictions)
+  if (CLEANUP_CONFIG.clearHistory && window.history) {
+    try {
+      // Clear forward/back history by replacing current state
+      const currentUrl = window.location.href.split('?')[0].split('#')[0];
+      window.history.replaceState({}, document.title, currentUrl);
+    } catch (error) {
+      console.warn('[VíaSetu] Could not clear history:', error);
+    }
+  }
+
+  console.log('[VíaSetu] Secure logout completed');
+}
+
+// Handle page unload (tab/browser close)
+function handlePageUnload(event) {
+  if (state.csrfToken && CLEANUP_CONFIG.clearOnTabClose) {
+    // Synchronous cleanup on unload
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Send beacon for server-side session cleanup
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/auth/logout', JSON.stringify({}));
+    }
+  }
+}
+
+// Handle visibility change (tab switching)
+function handleVisibilityChange() {
+  if (document.hidden && state.csrfToken && CLEANUP_CONFIG.clearOnBrowserClose) {
+    // Mark session for cleanup
+    sessionStorage.setItem('viasetu_cleanup_pending', 'true');
+  }
+}
+
+// Check for pending cleanup on page load
+function checkPendingCleanup() {
+  const cleanupPending = sessionStorage.getItem('viasetu_cleanup_pending');
+  if (cleanupPending === 'true') {
+    clearBrowserData();
+    sessionStorage.removeItem('viasetu_cleanup_pending');
+  }
+}
+
+// Register cleanup event listeners
+function registerCleanupListeners() {
+  // Handle browser/tab close
+  window.addEventListener('beforeunload', handlePageUnload);
+  window.addEventListener('unload', handlePageUnload);
+  
+  // Handle tab visibility changes
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  
+  // Handle page hide (iOS Safari compatibility)
+  window.addEventListener('pagehide', handlePageUnload);
+  
+  console.log('[VíaSetu] Cleanup listeners registered');
+}
+
+// Unregister cleanup event listeners
+function unregisterCleanupListeners() {
+  window.removeEventListener('beforeunload', handlePageUnload);
+  window.removeEventListener('unload', handlePageUnload);
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  window.removeEventListener('pagehide', handlePageUnload);
+}
+
+// ========================================
+// END SECURITY & PRIVACY
+// ========================================
+
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   loginError.textContent = "";
@@ -490,12 +705,7 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 logoutBtn.addEventListener("click", async () => {
-  try {
-    await api("/auth/logout", { method: "POST" });
-  } catch {
-    // ignore
-  }
-  showLogin();
+  await performSecureLogout();
 });
 
 prevPageBtn.addEventListener("click", () => {
@@ -528,6 +738,36 @@ fileInput.addEventListener("change", async () => {
   for (const file of files) await uploadFile(file);
   fileInput.value = "";
   await refresh();
+});
+
+// Privacy Settings Modal Event Listeners
+privacySettingsBtn.addEventListener("click", () => {
+  updateSettingsUI();
+  privacyModal.classList.remove("hidden");
+});
+
+closeModalBtn.addEventListener("click", () => {
+  privacyModal.classList.add("hidden");
+});
+
+privacyModal.querySelector(".modal-backdrop").addEventListener("click", () => {
+  privacyModal.classList.add("hidden");
+});
+
+saveSettingsBtn.addEventListener("click", () => {
+  updateSettingsFromUI();
+  saveCleanupSettings();
+  privacyModal.classList.add("hidden");
+  setMessage("Privacy settings saved successfully", false);
+  setTimeout(() => setMessage(""), 3000);
+});
+
+clearNowBtn.addEventListener("click", async () => {
+  if (confirm("Are you sure you want to clear all browser data now? This will log you out.")) {
+    await performSecureLogout();
+    privacyModal.classList.add("hidden");
+    setMessage("All data cleared successfully", false);
+  }
 });
 
 window.addEventListener("keydown", (event) => {
@@ -608,6 +848,15 @@ function setupDragAndDrop() {
 }
 
 (async function bootstrap() {
+  // Load cleanup settings
+  loadCleanupSettings();
+  
+  // Check for pending cleanup from previous session
+  checkPendingCleanup();
+  
+  // Register cleanup listeners
+  registerCleanupListeners();
+  
   try {
     const session = await api("/auth/session");
     state.csrfToken = session.csrfToken;
