@@ -34,6 +34,11 @@
             <input id="fileInput" type="file" multiple hidden>
           </label>
           <button id="toggleRecursive" class="secondary">Recursive: Off</button>
+          <button id="privacySettingsBtn" class="secondary" title="Privacy Settings">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M8 1L3 3V7C3 10.5 5.5 13.5 8 15C10.5 13.5 13 10.5 13 7V3L8 1Z"/>
+            </svg>
+          </button>
           <button id="logoutBtn" class="secondary">Logout</button>
         </div>
       </header>
@@ -44,6 +49,13 @@
       </section>
 
       <section id="uploadList" class="upload-list"></section>
+
+      <div class="scroll-hint mobile-only">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 12L10 8L6 4"/>
+        </svg>
+        <span>Scroll to see all columns</span>
+      </div>
 
       <section class="table-wrap">
         <table>
@@ -66,6 +78,69 @@
         <button id="nextPage">Next</button>
       </footer>
     </section>
+
+    <!-- Privacy Settings Modal -->
+    <div id="privacyModal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Privacy & Security Settings</h2>
+          <button id="closeModalBtn" class="icon-btn" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 5L15 15M15 5L5 15"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-description">Configure automatic cleanup when you exit VíaSetu. This helps protect your privacy by removing traces of your session.</p>
+          
+          <div class="settings-group">
+            <h3>Clear on Logout</h3>
+            <label class="setting-item">
+              <input type="checkbox" id="clearOnLogout" checked>
+              <span>Clear all data when clicking Logout button</span>
+            </label>
+          </div>
+
+          <div class="settings-group">
+            <h3>Clear on Tab/Browser Close</h3>
+            <label class="setting-item">
+              <input type="checkbox" id="clearOnTabClose" checked>
+              <span>Clear all data when closing tab or browser</span>
+            </label>
+          </div>
+
+          <div class="settings-group">
+            <h3>What to Clear</h3>
+            <label class="setting-item">
+              <input type="checkbox" id="clearLocalStorage" checked>
+              <span>Local Storage</span>
+            </label>
+            <label class="setting-item">
+              <input type="checkbox" id="clearSessionStorage" checked>
+              <span>Session Storage</span>
+            </label>
+            <label class="setting-item">
+              <input type="checkbox" id="clearCookies" checked>
+              <span>Cookies</span>
+            </label>
+            <label class="setting-item">
+              <input type="checkbox" id="clearCache" checked>
+              <span>Cache</span>
+            </label>
+            <label class="setting-item">
+              <input type="checkbox" id="clearHistory" checked>
+              <span>Browser History (limited)</span>
+            </label>
+          </div>
+
+          <div class="settings-actions">
+            <button id="saveSettingsBtn">Save Settings</button>
+            <button id="clearNowBtn" class="secondary">Clear All Data Now</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 
   <script src="./app.js" defer></script>

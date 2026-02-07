@@ -30,6 +30,7 @@ const privacyModal = document.getElementById("privacyModal");
 const closeModalBtn = document.getElementById("closeModalBtn");
 const saveSettingsBtn = document.getElementById("saveSettingsBtn");
 const clearNowBtn = document.getElementById("clearNowBtn");
+const scrollHint = document.querySelector(".scroll-hint");
 let liveSyncTimer = null;
 let refreshInFlight = false;
 let activeUploads = 0;
@@ -253,6 +254,42 @@ function renderRows(items) {
     tr.append(nameCell, typeCell, sizeCell, timeCell, actionsCell);
     fileRows.appendChild(tr);
   }
+  
+  // Setup scroll hint management for mobile
+  setupScrollHint();
+}
+
+function setupScrollHint() {
+  if (!scrollHint) return;
+  
+  const tableWrap = document.querySelector(".table-wrap");
+  if (!tableWrap) return;
+  
+  // Check if table needs scrolling
+  const needsScroll = tableWrap.scrollWidth > tableWrap.clientWidth;
+  
+  if (!needsScroll) {
+    scrollHint.classList.add("hidden");
+    return;
+  }
+  
+  // Show hint initially
+  scrollHint.classList.remove("hidden");
+  
+  // Hide hint after user scrolls
+  const handleScroll = () => {
+    if (tableWrap.scrollLeft > 20) {
+      scrollHint.classList.add("hidden");
+      tableWrap.removeEventListener("scroll", handleScroll);
+    }
+  };
+  
+  tableWrap.addEventListener("scroll", handleScroll);
+  
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    scrollHint.classList.add("hidden");
+  }, 5000);
 }
 
 async function refresh(options = {}) {
