@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LAN File Share</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app">
+    <section id="loginPanel" class="panel login-panel">
+      <h1>LAN File Share</h1>
+      <p class="subtle">Authenticate to access host files.</p>
+      <form id="loginForm" method="post" autocomplete="off">
+        <label for="password">Password / PIN</label>
+        <input id="password" name="password" type="password" required maxlength="128" autocomplete="current-password">
+        <button type="submit">Sign in</button>
+      </form>
+      <p id="loginError" class="error" role="alert"></p>
+    </section>
+
+    <section id="appPanel" class="panel hidden">
+      <div id="topProgress" class="top-progress" aria-hidden="true">
+        <div id="topProgressBar" class="top-progress-bar"></div>
+      </div>
+      <header class="toolbar">
+        <div>
+          <div class="breadcrumbs" id="breadcrumbs"></div>
+          <div class="subtle" id="sessionInfo"></div>
+        </div>
+        <div class="toolbar-actions">
+          <label class="btn secondary">
+            Upload
+            <input id="fileInput" type="file" multiple hidden>
+          </label>
+          <button id="toggleRecursive" class="secondary">Recursive: Off</button>
+          <button id="logoutBtn" class="secondary">Logout</button>
+        </div>
+      </header>
+
+      <section class="status-row">
+        <span id="loadingState" class="subtle" aria-live="polite"></span>
+        <span id="message" class="message" role="status" aria-live="polite"></span>
+      </section>
+
+      <section id="uploadList" class="upload-list"></section>
+
+      <section class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Size</th>
+              <th>Modified</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="fileRows"></tbody>
+        </table>
+      </section>
+
+      <footer class="pager">
+        <button id="prevPage">Prev</button>
+        <span id="pageMeta"></span>
+        <button id="nextPage">Next</button>
+      </footer>
+    </section>
+  </main>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
