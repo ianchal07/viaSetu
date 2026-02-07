@@ -278,7 +278,7 @@ function setupScrollHint() {
   
   // Hide hint after user scrolls
   const handleScroll = () => {
-    if (tableWrap.scrollLeft > 20) {
+    if (tableWrap.scrollLeft > 30) {
       scrollHint.classList.add("hidden");
       tableWrap.removeEventListener("scroll", handleScroll);
     }
@@ -286,10 +286,10 @@ function setupScrollHint() {
   
   tableWrap.addEventListener("scroll", handleScroll);
   
-  // Auto-hide after 5 seconds
+  // Auto-hide after 8 seconds (give users time to read)
   setTimeout(() => {
     scrollHint.classList.add("hidden");
-  }, 5000);
+  }, 8000);
 }
 
 async function refresh(options = {}) {
